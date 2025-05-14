@@ -5,9 +5,9 @@ The author acknowledges that this is a bit perverse for a PET program,
 since BeebASM is surely somewhat specific to the BBC Micro; but "BBC
 flavour" 6502 assembly language  (**&** introduces a hex constant,
 a dot indicates a label definition, comments are preceded with a
-backslash, BBC BASIC expressions are valid)  is the syntax I learned nearly four
-decades ago, and I know I would have spent far too long cursing the
-"un-BBC-like" syntax of any other assembler.
+backslash, BBC BASIC expressions are valid)  is the syntax I learned
+nearly four decades ago, and I know I would have spent far too long
+cursing the "un-BBC-like" syntax of any other assembler.
 
 ## INSTALL BEEBASM
 

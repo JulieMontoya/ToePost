@@ -17,7 +17,7 @@ The Commodore PET series of computers use the 6502 processor.  The
 design of the 6502 is such that it expects at least the first 512 bytes
 of its addressable space to be populated with RAM.  The **JSR** and
 **RTS** instructions store addresses on a stack, which is always
-implemented in addresses &0100 to &00FF.  (The stack pointer is only
+implemented in addresses &0100 to &01FF.  (The stack pointer is only
 8 bits wide; when the processor is addressing the stack, the high bits
 of the address bus are always %00000001.)  There are also some special
 addressing modes which work on addresses in the range &0000-&00FF,
@@ -32,6 +32,20 @@ addressing modes.  Furthermore, **until we have proved at least some
 memory to be usable, we can only hold values in registers.**  This
 means we can only use the accumulator, the X and Y registers and the
 stack pointer.
+
+## Memory Faults
+
+There are three types of fault that will affect RAM.  These are bits
+that always read as 0, irrespective what be written to them, and to
+which I might refer as **stuck zeros**; bits that always read as 1, or
+**stuck ones**; and locations that return values written to other
+locations, or **address clashes**.
+
+We can test for stuck bits by writing a known value to a location and
+trying to read it back; and we can test for address clashes by reading
+other locations to see whether they still contain the expected values.
+
+
 
 ## How ToePost tests memory
 
