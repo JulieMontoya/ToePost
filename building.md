@@ -21,12 +21,19 @@ $ cd ..
 $ sudo install -c beebasm /usr/bin/
 ```
 
+## OPTIONALLY INSTALL VICE
+
+Note that if you install VICE from your distributor's repositories, you
+probably will have to get the copyrighted ROMs from somewhere else.
+
 ## CONFIGURE THE SOURCE CODE
+
+### CRTC INITIALISATION
 
 As supplied, the CRTC is initialised with parameters for a 50Hz (PAL)
 machine.  A separate initialisation table is also provided for a 60Hz
-(NTSC) PET.  Search the Source Code for `LDA crtc_data_pal` and follow
-the instructions in the comments.
+(NTSC) PET.  Search the Source Code for `EDIT HERE` and follow the
+instructions in the comments.
 
 For PAL / 50Hz:
 ```
@@ -44,6 +51,23 @@ PET, just edit them in place of what's already there.  And please let
 the author know, so your parameters can be included in a future version
 of ToePost.  (This is GitHub, after all .....)
 
+### MEMORY SIZE
+
+There is another `EDIT HERE` section where you can select between
+testing memory all the way to &7FFF for a 32K PET, and testing only as
+far as &3FFF for a 16K PET.
+
+For 32K:
+```
+    \ CMP #&40            \  Stop at &40 on 4016
+    CMP #&80            \  Stop at &80 for 4032
+```
+For 16K:
+```
+    CMP #&40            \  Stop at &40 on 4016
+    \ CMP #&80            \  Stop at &80 for 4032
+```
+
 ## BUILD THE ROM IMAGE
 
 Type
@@ -51,7 +75,16 @@ Type
 $ beebasm -i ToePost.6502
 ```
 to build the Source Code.  When this is done, there should be a file
-called `toepost.bin` of size 2048 bytes.
+called `TOEPOST` of size 2048 bytes.
+
+## OPTIONALLY TEST IN VICE
+
+Type
+```
+xpet -model 4032 -editor TOEPOST
+```
+to start VICE with the ROM image just created in place of the usual
+editor ROM image.
 
 ## BURN THE IMAGE TO A ROM
 

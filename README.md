@@ -35,17 +35,29 @@ stack pointer.
 
 ## Memory Faults
 
-There are three types of fault that will affect RAM.  These are bits
-that always read as 0, irrespective what be written to them, and to
-which I might refer as **stuck zeros**; bits that always read as 1, or
-**stuck ones**; and locations that return values written to other
+There are three main types of fault that will affect RAM.  These are:
+bits that always read as 0, irrespective what be written to them, and
+to which we might refer as **stuck zeros**; bits that always read as 1,
+or **stuck ones**; and locations that return values written to other
 locations, or **address clashes**.
 
 We can test for stuck bits by writing a known value to a location and
 trying to read it back; and we can test for address clashes by reading
 other locations to see whether they still contain the expected values.
 
+### Refresh Faults
 
+The above three faults can affect static RAM  (as is used for the PET's
+display memory)  and dynamic RAM.  There is an additional type of fault
+which only affects dynamic RAM.
+
+Dynamic RAM requires regular refreshing.  In the PET, this is achieved
+using a counter which is connected to the RAM address bus via tristate
+buffers; !RAS is asserted and the whole row is refreshed.
+
+ToePost contains delays which are plenty long enough for DRAM contents
+to change if they are not being refreshed properly, so refresh faults
+can be detected as such.
 
 ## How ToePost tests memory
 
