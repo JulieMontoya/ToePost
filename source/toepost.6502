@@ -5,15 +5,14 @@
 \
 \  
 
-\  This version has a read-modify-write test and also includes both PAL
-\  and NTSC CRTC initialisation tables.
+\  Refresh test now moved to its own section where it runs just once,
+\  after delay after stack test has given time for contents to change
+\  if not refreshed and before ZP test begins.
 
-\  Converting hex display subroutines to accept return address in A
-\  (low byte)  and Y  (high byte)
-\  All instances of disp_2hex_ws updated.
-\  Seems to behave fine so far
-\  All instances of disp_hex_ws updated.
-\  Seems to behave fine so far.
+\  This version has a "fuse" to select whether or not to run the
+\  read-modify-write test.  If 0 is written to bit 7 of location &E7FF
+\  (which is possible in an already-programmed EPROM)  then the test
+\  will be skipped.
 
 screen      = &8000
 edit_rom    = &E000
@@ -123,17 +122,12 @@ ORG edit_rom
     JMP _bkt2
 ._bt_wr_wb
     JMP wb2
-\._bt_wr_ret
-\    JMP catch_groove    \  Overwritten with return address
 ._bt_read
     ORA dummy, X        \  Pick up any ones in test location
     JMP _bkt5           \  Continue block test routine
 ._bt_alt_read
     ORA dummy, X        \  Pick up any ones in alternative location
-    BCC _bt_ar_rf       \  Relative branch will survive relocation
     JMP bkt6a           \  Continue block test routine
-._bt_ar_rf
-    JMP rft_2
 ._bt_restore
     STA dummy, X        \  Store byte in test location
     JMP _bkt9           \  Continue block test routine
@@ -159,9 +153,6 @@ ORG edit_rom
     JMP catch_groove    \  Overwritten with return address
 ._pr_return
     JMP catch_groove    \  Overwritten with return address
-._pm_get
-    LDA dummy, Y        \  Read byte of message
-    JMP _pm_2           \  Continue print routine
 ._errors
     EQUW 0              \  Error counter
 ._wsct_end
@@ -192,7 +183,6 @@ sc_return   = _sc_return - wsct_offset
 dl_count    = _dl_count - wsct_offset
 dl_return   = _dl_return - wsct_offset
 pr_return   = _pr_return - wsct_offset
-pm_get      = _pm_get - wsct_offset
 errors      = _errors - wsct_offset
 ws_free     = _wsct_end - wsct_offset
 
@@ -228,7 +218,7 @@ ws_free     = _wsct_end - wsct_offset
     EQUS "TESTING PAGE    AGAINST   "
     BRK
 .msg_rfsh
-    EQUS "REFRESH ERROR      READ "
+    EQUS "REFRESH"
     BRK
     
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -256,7 +246,7 @@ ws_free     = _wsct_end - wsct_offset
 
 
     LDA crtc_data_pal, X    \  Get register value
-\     LDA crtc_data_ntsc, X   \  Get register value
+    \ LDA crtc_data_ntsc, X   \  Get register value
 
 \\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -574,7 +564,7 @@ ws_free     = _wsct_end - wsct_offset
     LDA #sttp_5 DIV 256
     STA pr_return + 2
     LDY #0
-    LDX #40             \  Beginning of row 3
+    LDX #14             \  Row 2, column 14
 ._sttp_1
     LDA msg_stk, Y
     BEQ _sttp_2
@@ -599,6 +589,83 @@ ws_free     = _wsct_end - wsct_offset
     JMP delay
 .sttp_6
 
+\  Test that the stack still contains all zeros after the delay.
+\  If any ones are found, this is a failure.
+
+.refresh_test
+    LDA #&01            \  New test, no failures
+    STA bt_signal
+    LDA #&00            \  Begin with all bits of accumulator clear
+    TAX
+
+._rft_1
+    STX bt_wr_pos       \  Write position will be in X on resume
+    ORA stack, X        \  Pick up any stray ones
+.rft_2
+    STA bt_rd_val       \  Save value read
+    BEQ _rft_3          \  Pass if we read all zeros
+
+\  Mark an F for (reFresh) in the bit position(s) that failed, among
+\  the low bank write bits.
+    
+    LDA bt_signal
+    ORA #&10            \  Set bit 4 to indicate refresh error
+    STA bt_signal
+    LDA bt_rd_val       \  Get value read back
+    LDX #0
+._f_bits1
+    ASL A
+    BCC _f_bits2
+    TAY
+    LDA #&06            \  PETSCII "F"
+    STA row15 + 20, X   \  Mark failure in low bank write bits
+    TYA
+._f_bits2
+    INX
+    CPX #8
+    BCC _f_bits1
+    
+\  Don't display a message for each error; just increase the count of
+\  errors.
+    
+    INC errors          \  Increase low byte of error count
+    BNE _f_bits3        \  Skip if it did not roll round to &00
+    INC errors + 1      \  Do high byte
+._f_bits3
+    LDX bt_wr_pos       \  Restore this
+    
+._rft_3
+    INX
+    BNE _rft_1          \  Keep testing until we have done whole page
+
+\  End of refresh test
+
+.refresh_pass
+    LDA #_rftp_3 MOD 256 \  Set up return address
+    STA pr_return + 1
+    LDA #_rftp_3 DIV 256
+    STA pr_return + 2
+    LDY #0
+    LDX #40             \  Beginning of row 3
+._rftp_1
+    LDA msg_rfsh, Y
+    BEQ _rftp_2
+    AND #&3F            \  ASCII to PETSCII
+    STA row2, X         \  Store in screen memory
+    INY
+    INX
+    BNE _rftp_1
+._rftp_2
+    JMP _pr_3           \  Finish report
+    
+\  WAIT A FEW SECONDS BEFORE CONTINUING
+
+._rftp_3
+    LDY #zp_test DIV 256 \  High byte of return address
+    LDX #zp_test MOD 256 \  Low byte of return address
+    LDA #10             \  Should be long enough
+    JMP delay
+    
 \  IF THAT WENT WELL, WE USE THE SAME CODE TO TEST ZERO PAGE
 
 \  This time, we want to continue with JMP zp_pass .
@@ -629,7 +696,7 @@ ws_free     = _wsct_end - wsct_offset
     
 .zptp_1
     LDA bt_signal
-    AND #&E0            \  We only care about bits 5-7
+    AND #&F0            \  We only care about bits 4-7
     \ BNE zptp_1          \  Don't proceed if any failures occurred
     NOP : NOP
 
@@ -703,7 +770,7 @@ ws_free     = _wsct_end - wsct_offset
 ._pop_4    
     LDA #&02            \  Test page &02 ...
     STA bt_write + 2
-    LDA #&01            \  ... against page &01
+    LDA #&FF            \  ... against page &FF (i.e., on its own)
     STA bt_alt_read + 2
 
 \  This time, our reinitialisation code is at _pgt_2
@@ -751,7 +818,11 @@ ws_free     = _wsct_end - wsct_offset
     AND #&3F            \  ASCII to PETSCII
     STA row3, X
     INX
-    BNE _pgti_1         \  Not expected to fall through
+    CPX #13
+    BNE _pgti_1
+    BIT bt_alt_read + 2 \  See if alternative block >= &80
+    BMI _pgti_2         \  Skip rest of message if so
+    BPL _pgti_1
 
 \  Now fill in the gaps in the message.  Page being tested at col 13;
 
@@ -759,6 +830,8 @@ ws_free     = _wsct_end - wsct_offset
     LDX #40 + 13        \  Row 3, column 13
     LDA bt_write + 2
     STA dh_val
+    BIT bt_alt_read + 2 \  See if alternative block >= &80
+    BMI _pgti_3a        \  If so, cut message short
     LDY #_pgti3 DIV 256 \  High byte of return address
     LDA #_pgti3 MOD 256 \  Low byte of return address
     JMP disp_hex_Y      \  Display the page being tested
@@ -769,6 +842,7 @@ ws_free     = _wsct_end - wsct_offset
     LDX #40 + 24        \  Row 3, column 24
     LDA bt_alt_read + 2
     STA dh_val
+._pgti_3a
     LDY #_pgti4 DIV 256 \  High byte of return address
     LDA #_pgti4 MOD 256 \  Low byte of return address
     JMP disp_hex_Y      \  Display the alternative page
@@ -799,8 +873,6 @@ ws_free     = _wsct_end - wsct_offset
     JMP delay
 
 ._pgt_3
-    LDA bt_write + 2    \  High byte of block just tested
-    STA bt_alt_read + 2 \  Use as alternate block
     INC bt_write + 2    \  Test next page
     LDA bt_write + 2    \  Check if we hit end of memory
 
@@ -822,7 +894,6 @@ ws_free     = _wsct_end - wsct_offset
     JMP pg_test
     
 ._pgt_i
-
     JMP catch_groove
 
 \  BLOCK TEST
@@ -852,8 +923,6 @@ ws_free     = _wsct_end - wsct_offset
     STX bt_restore + 1  \  Write a byte, for restoring original value
     STY bt_restore + 2
 
-    \ LDA #&00            \  No errors found  (yet .....)
-    \ STA bt_signal
     LDA #&01            \  To distinguish &61 from &21
     STA bt_signal
     LDA #&00
@@ -881,39 +950,12 @@ ws_free     = _wsct_end - wsct_offset
     BCC _wb_3           \  Keep going till column 39
     LDX #&00
 
-\     JMP _bkt_0
-    
-\  Set up correct address to jump to after scrolling screen
-
-    LDA #rft_resume MOD 256
-    STA sc_return + 1
-    LDA #rft_resume DIV 256
-    STA sc_return + 2
-
-\  Test that the alternate block  (which we cleared before the last
-\  pause)  still contains all zeros.  If not, call it a refresh error.
-
-.refresh_test
-    CLC                 \  C=0 ensures bt_alt_read returns here
-    LDA #&00            \  Begin with all bits of accumulator clear
-._rft_1
-    STX bt_wr_pos       \  Write position will be in X on resume
-    JMP bt_alt_read     \  Pick up any stray ones
-.rft_2
-    STA bt_rd_val       \  Save value read
-    BEQ _rft_3          \  Pass if we read all zeros
-    JMP refresh_fail    
-.rft_resume
-    LDA #0              \  Start again with accumulator clear ...
-    CLC                 \  ... And carry clear
-._rft_3
-    INX
-    BNE _rft_1          \  Keep testing whole page
+    BIT bt_alt_read + 2 \  See if alternative block >= &80
+    BMI _bkt_0          \  Skip refresh test if so
     
 \  Set up correct address to jump to after scrolling screen
 
 ._bkt_0
-
     LDA #bt_resume MOD 256
     STA sc_return + 1
     LDA #bt_resume DIV 256
@@ -958,7 +1000,9 @@ ws_free     = _wsct_end - wsct_offset
     BEQ _bkt6           \  Pass if contents = 0
     JMP bt_misread
 ._bkt6
-    SEC                 \  We have done a CPX that trashed the Carry!
+    SEC                 \  That CPX will have trashed the Carry flag!
+    BIT bt_alt_read + 2 \  See if alternative block >= &80
+    BMI _bkt6b          \  Skip reading alternate block if so
     JMP bt_alt_read     \  Test for zero in alternative block
 .bkt6a
     STA bt_rd_val
@@ -971,8 +1015,7 @@ ws_free     = _wsct_end - wsct_offset
     INY                 \  Next bit
     CPY #8
     BCC _bkt1           \  Keep going for all 8 bits
-    
-    
+        
 \  This is where we resume after a write or read error.  Important:
 \  X needs to be initialised with the write position, so we can put
 \  back the &00 that used to be there.
@@ -1067,64 +1110,44 @@ ws_free     = _wsct_end - wsct_offset
 
 \  Indicate which bit(s) failed
 
-.refresh_fail
-
-    LDA bt_rd_val       \  Get value read back
-    LDX #0
-._f_bits1
-    ASL A
-    BCC _f_bits2
-    TAY
-    LDA #&06            \  PETSCII "F"
-    BIT bt_alt_read + 2 \  See which bank we were testing
-    BVC _f_bits_1l      \  V=1 if bit 6 = 1
-    STA row14 + 20, X   \  Mark failure in high bank write bits
-    BVS _f_bits_1e
-._f_bits_1l    
-    STA row15 + 20, X   \  Mark failure in low bank write bits
-._f_bits_1e
-    TYA
-._f_bits2
-    INX
-    CPX #8
-    BCC _f_bits1
-    
-\  Display error message with gaps on row 5;
-    LDX #0
-._rff_1
-    LDA msg_rfsh, X
-    BEQ _rff_2
-    AND #&3F            \  ASCII to PETSCII
-    STA row5, X
-    INX
-    BNE _rff_1          \  Not expected to fall through
-
-\  Now fill in the gaps in the message.  Address at column 14;
-
-._rff_2
-    LDX #3 * 40 + 14    \  Row 5, column 14
-    CLC
-    LDA bt_alt_read + 1 \  Get address being read in alt block
-    ADC bt_rd_pos       \  Add offset
-    STA dh_val          \  Store low byte
-    LDA bt_alt_read + 2 \  Now do high byte
-    ADC #0              \  Adjust if carry occurred
-    STA dh_val + 1      \  Store ready to be displayed
-    LDY #_rff_3 DIV 256 \  High byte of return address
-    LDA #_rff_3 MOD 256 \  Low byte of return address
-    JMP disp_2hex_Y     \  Display address read as non-zero
-
-\  Value we read at column 24
-    
-._rff_3
-    LDX #3 * 40 + 24    \  Row 5, column 24
-    LDA bt_rd_val
-    STA dh_val
-    LDY #err_count DIV 256 \  Finish with error count
-    LDA #err_count MOD 256
-    JMP disp_hex_Y      \  Display the value read
-
-\  And this finishes with JMP err_count  (q.v.)
+\ .refresh_fail
+\     
+\ \  Display error message with gaps on row 5;
+\     LDX #0
+\ ._rff_1
+\     LDA msg_rfsh, X
+\     BEQ _rff_2
+\     AND #&3F            \  ASCII to PETSCII
+\     STA row5, X
+\     INX
+\     BNE _rff_1          \  Not expected to fall through
+\ 
+\ \  Now fill in the gaps in the message.  Address at column 14;
+\ 
+\ ._rff_2
+\     LDX #3 * 40 + 14    \  Row 5, column 14
+\     CLC
+\     LDA bt_alt_read + 1 \  Get address being read in alt block
+\     ADC bt_wr_pos       \  Add offset
+\     STA dh_val          \  Store low byte
+\     LDA bt_alt_read + 2 \  Now do high byte
+\     ADC #0              \  Adjust if carry occurred
+\     STA dh_val + 1      \  Store ready to be displayed
+\     LDY #_rff_3 DIV 256 \  High byte of return address
+\     LDA #_rff_3 MOD 256 \  Low byte of return address
+\     JMP disp_2hex_Y     \  Display address read as non-zero
+\ 
+\ \  Value we read at column 24
+\     
+\ ._rff_3
+\     LDX #3 * 40 + 24    \  Row 5, column 24
+\     LDA bt_rd_val
+\     STA dh_val
+\     LDY #err_count DIV 256 \  Finish with error count
+\     LDA #err_count MOD 256
+\     JMP disp_hex_Y      \  Display the value read
+\ 
+\ \  And this finishes with JMP err_count  (q.v.)
     
 \  READBACK FAILURE
 \
@@ -1595,7 +1618,7 @@ ws_free     = _wsct_end - wsct_offset
     \ JMP _pr_3
     LDY #0              \  We will need this in either case
     LDA bt_signal
-    AND #&E0            \  We only care about bits 5-7
+    AND #&F0            \  We only care about bits 4-7
     BNE _pr_6           \  Zero if no tests failed
     
 \  DISPLAY " OK"    
@@ -1645,28 +1668,7 @@ ws_free     = _wsct_end - wsct_offset
     JMP disp_2hex_Y     \  Display the error count
     
 \  This ends with JMP pr_return (q.v.)
-    
-\  PRINT A MESSAGE
-\  ON ENTRY, A HOLDS THE LOW BYTE AND Y THE HIGH BYTE OF THE LOCATION
-\  OF THE BEGINNING OF THE MESSAGE.
-\  THE RETURN ADDRESS MUST BE INITIALISED AT pr_return + 1, 2
 
-.print_msg
-    STY pm_get + 2      \  High byte of message address
-    STA pm_get + 1      \  Low byte of message address
-    LDY #0              \  Y will be position within message
-._pm_1
-    JMP pm_get          \  Read byte Y of message
-._pm_2
-    BEQ _pm_3
-    AND #&3F            \  ASCII to PETSCII
-    STA row2, X
-    INX
-    INY
-    BNE _pm_1           \  Not expected to fall through
-._pm_3
-    JMP pr_return
-        
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 ._last
@@ -1683,7 +1685,8 @@ NEXT
     
 .rmw_fuse
     EQUB &FF
-    
+    \ EQUB &7F
+      
 ._end
 
 SAVE "TOEPOST", _begin, _end

@@ -38,11 +38,11 @@ instructions in the comments.
 For PAL / 50Hz:
 ```
     LDA crtc_data_pal, X    \  Get register value
-\     LDA crtc_data_ntsc, X   \  Get register value
+    \ LDA crtc_data_ntsc, X   \  Get register value
 ```
 For NTSC / 60Hz:
 ```
-\     LDA crtc_data_pal, X    \  Get register value
+    \ LDA crtc_data_pal, X    \  Get register value
     LDA crtc_data_ntsc, X   \  Get register value
 ```
 
@@ -95,3 +95,13 @@ It would also be possible to have a larger EPROM in some sort of
 adaptor board, with jumpers or DIPswitches to force the higher order
 address lines and so select a 2KB image.  This is beyond the scope of
 these instructions, though.
+
+## THE READ-MODIFY-WRITE FUSE
+
+Location &7FF within the EPROM normally contains &FF.  Since the
+operation of erasing an EPROM sets all bits to "1" and the programming
+operation changes a "1" bit to "0", it is possible to edit the binary
+image with a hex editor and reprogram this location to &7F in order to
+skip the initial, read-modify-write test on the display memory.  Any
+blank test must be skipped, but the contents should verify correctly
+after programming  (which will be very quick).
