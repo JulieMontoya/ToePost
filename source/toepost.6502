@@ -9,6 +9,9 @@
 \  after delay after stack test has given time for contents to change
 \  if not refreshed and before ZP test begins.
 
+\  Fixed bug in main write-and-read-back test where failures were being
+\  reported in the wrong place.
+
 \  This version has a "fuse" to select whether or not to run the
 \  read-modify-write test.  If 0 is written to bit 7 of location &E7FF
 \  (which is possible in an already-programmed EPROM)  then the test
@@ -969,6 +972,7 @@ ws_free     = _wsct_end - wsct_offset
 
 \  TEST THAT A BYTE WRITTEN TO MEMORY CAN BE READ BACK SUCCESSFULLY
 
+    STX bt_wr_pos       \  Save current write position
     STY bt_wr_ind       \  Store index so as to be able to resume
     LDA bits_LH, Y      \  Get byte with relevant bit set
     JMP bt_write        \  Write at offset X, read back and EOR
@@ -987,7 +991,6 @@ ws_free     = _wsct_end - wsct_offset
     LDA #&2B            \  PETSCII "+"
     STA bt_map, X       \  Write test passed
 ._bkt_3a
-    STX bt_wr_pos       \  Save current write position
     LDX #&00            \  Begin reading at offset 0
     TXA                 \  Begin with &00 in accumulator
 ._bkt4
@@ -1686,7 +1689,7 @@ NEXT
 .rmw_fuse
     EQUB &FF
     \ EQUB &7F
-      
+    
 ._end
 
 SAVE "TOEPOST", _begin, _end
