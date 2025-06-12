@@ -11,7 +11,7 @@ quarter; including a pause for photography between each test and the
 next.
 
 ### The workspace test
-![The workspace test](https://github.com/PXL_20250610_181108409.jpg "The workspace test")
+![The workspace test](./PXL_20250610_181108409.jpg "The workspace test")
 Here we are about to test a chunk of 256 bytes of the screen memory,
 which we can use as a workspace to hold variables and code, which will
 allow us to manage without a stack (for subroutine calls and super
