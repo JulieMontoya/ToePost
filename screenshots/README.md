@@ -11,7 +11,7 @@ quarter; including a pause for photography between each test and the
 next.
 
 ### The workspace test
-![alt text](https://github.com/JulieMontoya/ToePost/blob/main/screenshots/PXL_20250610_181108409.jpg)
+![The workspace test](https://github.com/PXL_20250610_181108409.jpg "The workspace test")
 Here we are about to test a chunk of 256 bytes of the screen memory,
 which we can use as a workspace to hold variables and code, which will
 allow us to manage without a stack (for subroutine calls and super
@@ -19,14 +19,14 @@ temporary storage) or zero page (for indirect addressing modes) until
 we have proved pages 00 and 01 good.
 
 ### After the stack and refresh tests
-![alt text](https://github.com/JulieMontoya/ToePost/blob/main/screenshots/PXL_20250610_181157051.jpg) At the end of the stack test, it will contain all zeros.  If, during
+![After the stack and refresh tests](https://github.com/JulieMontoya/ToePost/blob/main/screenshots/PXL_20250610_181157051.jpg "After the stack and refresh tests") At the end of the stack test, it will contain all zeros.  If, during
 the pause after the stack test, while we have not been making enough
 memory accesses to keep the memory refreshed, any bits have changed
 from 0 to 1, this will be picked up as a fault with the refresh
 circuit.
 
 ### After the zero page test
-![After the zero page test](https://github.com/JulieMontoya/ToePost/blob/main/screenshots/PXL_20250610_181238057.jpg)
+![After the zero page test](https://github.com/JulieMontoya/ToePost/blob/main/screenshots/PXL_20250610_181238057.jpg "After the zero page test")
 By this point, we can be reasonably confident that we have a
 mostly-working machine.
 
