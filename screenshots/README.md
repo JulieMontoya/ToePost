@@ -108,3 +108,23 @@ Referring to the above table, this suggests UA6 could be faulty.  (Or
 this could be a 16K machine; in which case, this result is to be
 expected.)
 
+### Page-by-page Test Failure
+![Page-by-page Test Failure 1](./PXL_20250611_155522355.jpg "Page-by-page Test Failure 1")
+Here we have tested pages 40 and 41, and in each case found an error in
+every one of the 256 locations in the page; bringing the cumulative
+error count up to 768 decimal = 0300 hex.
+
+![Page-by-page Test Failure 2](./PXL_20250611_155537451.jpg "Page-by-page Test Failure 2")
+Here we have tested page 42, again with errors in every location.
+
+![Page-by-page Test Failure 3](./PXL_20250611_160817093.jpg "Page-by-page Test Failure 3")
+By the time we have reached the end of page 7f, we have a grand total
+of hex 4100 errors; of which 100 occurred when testing page 40 for
+address clashes against page 00, and a further 100 occurred in each
+page from 40 to 7f. The errors involved only bit 6 in the high bank.
+
+This indicates that the fault almost certainly involves UA6; either the
+chip is bad, or there could be a poor connection on one or more of its
+pins (the latter would be more likely if the fault did not involve a
+round number of memory locations; a multiple of 100 or 80 suggests a
+more consistent fault).
