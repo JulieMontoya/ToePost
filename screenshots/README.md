@@ -60,12 +60,23 @@ corresponding bank; and, in the refresh test only, F if a refresh
 fault is detected in the corresponding bit in any location.
 
 The positions on the right will change to R if a read error is detected
-in the corresponding bit in any location in the corresponding bank.
+in the corresponding bit in any location in the corresponding bank;
+or, where applicable, in the alternate bank.
 
 ### After the zero page test
 ![After the zero page test](./PXL_20250610_181238057.jpg "After the zero page test")
-By this point, we can be reasonably confident that we have a
-mostly-working machine.
+By this point, we can be reasonably confident that we have a mostly
+working machine. Certainly the beginning of screen RAM must be good,
+and not clashing with pages 00 or 01, or else the program would have
+crashed. We have also proved that page 01, which is used for the 6502
+stack, is good; page 00, which is used in various instructions as a
+kind of extended register set, is also good; there are no clashes
+between these pages; and the memory refresh counter and its associated
+tristate buffers are working properly.
+
+However, we have not yet tested the majority of the PET's memory; and
+we have only tested for address clashes in the low-order address bits
+A0-A7. 
 
 ### Testing for address clashes
 ![Testing for address clashes](./PXL_20250610_181313294.jpg)
@@ -74,6 +85,15 @@ with page 00.  Such a fault would indicate a problem with one of the
 high-order address lines A8-A14.  Unpopulated memory locations read
 back as the high-order byte of their addresses, so this test will
 indicate how much memory is fitted.
+
+Memory size | Pass | Fail
+------------|------|------------
+32K         |  All |       None
+16K         |   20 |         40
+8K          |   10 |     20, 40
+4K          |   08 | 10, 20, 40
+
+Faults in the high bank may cause 32K to test as 16K and 8K as 4K.
 
 ### Page-by-page memory testing
 ![Page-by-page memory testing](./PXL_20250610_182021618.jpg)
