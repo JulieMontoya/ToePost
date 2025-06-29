@@ -1,5 +1,15 @@
 # SCREENSHOTS
 
+## The Test Screen
+![The Test Screen](./test_screen.png "The Test Screen")
+This shows the various important zones on screen during the main test:
+
++ Code and variables
++ Results area
++ Byte Map -- results of each byte within the block under test
++ Bit Map -- which bits failed in any byte in the high and low blocks
++ Scrolling Zone -- shows the most recent 9 failure messages
+
 ## A working "4032"  (actually an upgraded 4016)
 
 _These pictures were kindly supplied by Colin._
